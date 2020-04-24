@@ -3,7 +3,7 @@ include("./PokerHand.jl")
 using .PokerHand
 using .PokerHand: values
 
-export get_best_hand, is_hand_better, get_deck, Tie, deal!, suits
+export get_best_hand, is_hand_better, get_deck, Tie, deal!
 export high_card, pair, two_pair, three_of_a_kind, straight, flush, full_house, quads, straight_flush
 export PokerHand
 
@@ -29,13 +29,9 @@ end
 
 const Deck = Array{Card, 1}
 
-suits = ['♠', '♣', '♥', '♦']
-
-card = string(values[rand(1:12)], suits[rand(1:4)])
-
 function get_deck()::Deck
     deck = []
-    for rank in values
+    for rank in 2:14
         card_suits = [Card(rank, suit) for suit in suits]
         append!(deck, card_suits)
     end
@@ -51,10 +47,19 @@ function get_winning_hand(hands, shared_cards)
 end
 
 function deal!(deck::Deck)::Card
-    idx = rand(1:length(deck))
+    deck_len = length(deck)
+    idx = rand(1:deck_len)
+    # random card to be dealt
     card = deck[idx]
-    deleteat!(deck, idx)
+    # remove random card from deck
+    deck[idx] = deck[deck_len]
+    resize!(deck, deck_len-1)
     return card
+end
+
+deck = get_deck()
+for i in 1:52
+    # println(deal!(deck))
 end
 
 # check if handA is better than handB
@@ -117,24 +122,33 @@ end
 function find_straight(hand::OrderedCards)::Union{OrderedCards, Nothing}
     # reorder cards only by rank
     hand = sort(hand, lt = (x, y) -> x.card.rank > y.card.rank)
+    # add ace as lowest card too
+    if hand[1].card.rank == 14
+        push!(hand, CardCount(Card(1, hand[1].card.suit), 1))
+    end
 
     straight_cards = []
     consecutives_count = 1
     straight_cards = nothing
-    rank_idx = nothing
-    prev_rank_idx = -1
+    rank = nothing
+    prev_rank = -1
     for card_count in hand
-        rank_idx = get_value_idx(card_count.card.rank)
-        if prev_rank_idx != -1 && (prev_rank_idx == rank_idx + 1)
+        rank = card_count.card.rank
+        if prev_rank != -1 && (prev_rank == rank + 1)
             consecutives_count += 1
             push!(straight_cards, CardCount(card_count.card, 1))
-        elseif prev_rank_idx == rank_idx
+        # ace low card
+        # elseif prev_rank == 2 && hand[1].rank == 14
+        #     consecutives_count += 2
+        #     push!(straight_cards, CardCount(card_count.card, 1))
+        #     push!(straight_cards, CardCount(hand[1].card, 1))
+        elseif prev_rank == rank
             # skip values that are the same
         else
             consecutives_count = 1
             straight_cards = [ CardCount(card_count.card, 1) ]
         end
-        prev_rank_idx = rank_idx
+        prev_rank = rank
 
         # if straight is found break out of loop
         if consecutives_count >= 5
@@ -154,8 +168,6 @@ function find_straight_flush(hand::OrderedCards)::Union{OrderedCards, Nothing}
 
     return nothing
 end
-
-get_value_idx(value) = findfirst(x -> x == value, values)
 
 function sort_cards(hand::CardTuples)::CardTuples
     return sort(hand, lt = (x, y) -> x.rank > y.rank)
