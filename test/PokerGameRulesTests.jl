@@ -20,6 +20,17 @@ using Test, .PokerGameRules, .PokerHand
 # validate three of a kind
 @test get_best_hand(to_hand_tuples("A♦ A♣ A♠ K♥ 3♠ 6♦ 9♦")).combo == three_of_a_kind
 
+
+# DECK DEALING TEST
+starting_deck = get_deck()
+dealt_deck = Set()
+for i=1:52
+    # push will do nothing if card is dealt second time
+    push!(dealt_deck, deal!(starting_deck))
+end
+# test that no duplicates have been dealt
+@test length(dealt_deck) == 52
+
 # HAND RANKING TESTS
 
 @testset "compare straight flush" begin
