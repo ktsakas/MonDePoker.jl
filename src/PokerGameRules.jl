@@ -3,7 +3,7 @@ include("./PokerHand.jl")
 using .PokerHand
 using .PokerHand: values
 
-export get_best_hand, is_hand_better, get_deck, Tie, deal!
+export get_best_hand, is_hand_better, get_deck, Tie, deal!, deleteat!, idx_from_rank_suit, Deck
 export high_card, pair, two_pair, three_of_a_kind, straight, flush, full_house, quads, straight_flush
 export PokerHand
 
@@ -29,31 +29,30 @@ end
 
 const Deck = Array{Card, 1}
 
+@inline function idx_from_rank_suit(rank, suit)
+    return (rank - 2) * 4 + suit
+end
+
 function get_deck()::Deck
-    deck = []
-    for rank in 2:14
-        card_suits = [Card(rank, suit) for suit in suits]
-        append!(deck, card_suits)
-    end
+    deck = Array{Card}(undef, 52)
+    for rank in 2:14 for suit in 1:4
+        #println((rank - 2) * 4 + suit)
+        deck[idx_from_rank_suit(rank, suit)] = Card(rank, Suit(suit))
+    end end
     return deck
 end
 
-function win_chance(starting_hand)
-
-end
-
-function get_winning_hand(hands, shared_cards)
-
+function deleteat!(deck::Deck, index::Integer)
+    # remove random card from deck
+    deck[index] = deck[length(deck)]
+    resize!(deck, length(deck)-1)
 end
 
 function deal!(deck::Deck)::Card
-    deck_len = length(deck)
-    idx = rand(1:deck_len)
+    idx = rand(1:length(deck))
     # random card to be dealt
     card = deck[idx]
-    # remove random card from deck
-    deck[idx] = deck[deck_len]
-    resize!(deck, deck_len-1)
+    deleteat!(deck, idx)
     return card
 end
 
@@ -91,8 +90,8 @@ function find_longest_suited(hand::OrderedCards)::Union{Nothing, OrderedCards}
         suit_match_idxs = findall(x::CardCount -> x.card.suit == suit, hand)
 
         if length(suit_match_idxs) >= 5
-            flush_cards = [hand[idx] for idx in suit_match_idxs]
-            return flush_cards
+            longest_suited = [CardCount(hand[idx].card, 1) for idx in suit_match_idxs]
+            return sort(longest_suited, lt = (x, y) -> x.card.rank > y.card.rank)
         end
     end
 
@@ -132,7 +131,8 @@ function find_straight(hand::OrderedCards)::Union{OrderedCards, Nothing}
     straight_cards = nothing
     rank = nothing
     prev_rank = -1
-    for card_count in hand
+    for idx = 1:length(hand)
+        card_count = hand[idx]
         rank = card_count.card.rank
         if prev_rank != -1 && (prev_rank == rank + 1)
             consecutives_count += 1
@@ -144,6 +144,8 @@ function find_straight(hand::OrderedCards)::Union{OrderedCards, Nothing}
         #     push!(straight_cards, CardCount(hand[1].card, 1))
         elseif prev_rank == rank
             # skip values that are the same
+        elseif length(hand)-idx+consecutives_count < 5
+            return nothing
         else
             consecutives_count = 1
             straight_cards = [ CardCount(card_count.card, 1) ]
@@ -197,17 +199,19 @@ function get_best_hand(player_cards::CardTuples)::BestHand
     @assert length(player_cards) == 7
 
     ordered_cards = get_ordered_card_counts(player_cards)
+    longest_suited = find_longest_suited(ordered_cards)
 
-    straight_flush_cards = find_straight_flush(ordered_cards)
-    if straight_flush_cards != nothing return BestHand(straight_flush, ordered_cards) end
+    if longest_suited != nothing && length(longest_suited) >= 5
+        straight_flush_cards = find_straight(longest_suited)
+        if straight_flush_cards != nothing return BestHand(straight_flush, ordered_cards) end
+    end
 
     if ordered_cards[1].count == 4 return BestHand(quads, ordered_cards) end
 
     if has_full_house(ordered_cards) return BestHand(full_house, ordered_cards) end
 
-    flush_cards = find_flush(ordered_cards)
-    if flush_cards != nothing
-        return BestHand(flush, flush_cards)
+    if longest_suited != nothing && length(longest_suited) >= 5
+        return BestHand(flush, longest_suited[1:5])
     end
 
     straight_cards = find_straight(ordered_cards)

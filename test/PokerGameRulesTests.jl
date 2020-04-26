@@ -4,6 +4,7 @@ using Test, .PokerGameRules, .PokerHand
 # validate straight flush
 @test get_best_hand(to_hand_tuples("4♥ 8♥ Q♣ 6♥ 5♥ T♠ 7♥")).combo == straight_flush
 @test get_best_hand(to_hand_tuples("4♥ 8♥ 5♣ 6♥ 5♥ T♠ 7♥")).combo == straight_flush
+@test get_best_hand(to_hand_tuples("4♥ 8♥ K♥ 6♥ 5♥ T♠ 7♥")).combo == straight_flush
 
 # validate four of a kind in hand
 @test get_best_hand(to_hand_tuples("6♠ 6♣ Q♦ 6♥ 5♦ 6♣ 9♦")).combo == quads

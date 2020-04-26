@@ -24,6 +24,8 @@ Base.show(io::IO, s::Suit) = print(io, char(s))
 struct Card
     rank::Rank
     suit::Suit
+
+    Card(r, s) = 1 ≤ r ≤ 14 ? new(r, s) : error(string("rank ", r ," out of bounds"))
 end
 const CardTuples = Array{Card, 1}
 
@@ -47,6 +49,7 @@ for s in "♣♦♥♠", (r,f) in zip(10:14, "TJQKA")
 end
 
 function Base.show(io::IO, card::Card)
+    # println("rank ", card.rank)
     print(io, rank_chars[card.rank], card.suit)
 end
 

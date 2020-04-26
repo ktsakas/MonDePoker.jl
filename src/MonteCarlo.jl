@@ -2,15 +2,37 @@ module MonteCarlo
 include("./PokerGameRules.jl")
 using .PokerGameRules, .PokerHand
 using .PokerHand: values
+using .PokerGameRules: deleteat!
+using CSV, DataFrames, Tables
 
 total = 10000
 players = 6
 
-hand_win_ratios = []
-i, j = 0, 0
-for rankA in 2:14 for rankB in 2:14 for suited in (!(rankA == rankB), false)
+struct HandOutcome
+    cardA::Rank
+    cardB::Rank
+    suited::Bool
+
+    win_count::Int64
+    tie_count::Int64
+    total::Int64
+end
+
+filename = "C:/Users/ktsakas/Documents/MonDePoker.jl/src/starting_hands.csv"
+hand_win_ratios = try
+    df = CSV.read(filename)
+    hand_win_ratios::Array{HandOutcome} = map(row -> HandOutcome(row.cardA, row.cardB, row.suited, row.win_count, row.tie_count, row.total), Tables.rows(df))
+catch
+    hand_win_ratios::Array{HandOutcome} = fill(HandOutcome(2, 2, true, 0, 0, 0), 169)
+end
+
+pick_from = [Card(rankA, suit) for rankA = 2:14 for suit in [♦ ♥]]
+println(pick_from)
+row_idx = 1
+for cardA = 1:2:26 for cardB=(cardA+1):26
+    global row_idx
     # println(i, " ", j)
-    p1_hidden_cards = [Card(rankA, ♦), Card(rankB, suited ? ♦ : ♥)]
+    p1_hidden_cards = [pick_from[cardA], pick_from[cardB]]
     #p1_hidden_cards = [A♦, A♥]
 
     win_count = 0
@@ -18,7 +40,8 @@ for rankA in 2:14 for rankB in 2:14 for suited in (!(rankA == rankB), false)
     for i in 1:total
         #global win_count
         deck = get_deck()
-        filter!(x -> x ∉ p1_hidden_cards, deck)
+        deleteat!(deck, idx_from_rank_suit(p1_hidden_cards[1].rank, p1_hidden_cards[1].suit.i))
+        deleteat!(deck, idx_from_rank_suit(p1_hidden_cards[2].rank, p1_hidden_cards[2].suit.i))
 
         community_cards::CardTuples = [deal!(deck), deal!(deck), deal!(deck), deal!(deck), deal!(deck)]
 
@@ -42,16 +65,26 @@ for rankA in 2:14 for rankB in 2:14 for suited in (!(rankA == rankB), false)
         end
     end
 
+    rankA = p1_hidden_cards[1].rank
+    rankB = p1_hidden_cards[2].rank
+    suited = p1_hidden_cards[1].suit == p1_hidden_cards[2].suit
+    prev_outcome = hand_win_ratios[row_idx]
+    hand_win_ratios[row_idx] = HandOutcome(
+        rankA, rankB, suited, # starting hand
+        prev_outcome.win_count + win_count,
+        prev_outcome.tie_count + tie_count,
+        prev_outcome.total + total)
+    row_idx += 1
+    # push!(hand_win_ratios, hand_outcome)
+end end
 
-    push!(hand_win_ratios, ((p1_hidden_cards[1], p1_hidden_cards[2]), win_count, total, tie_count))
-end end end
+println("row idx: ", row_idx)
 
-sort!(hand_win_ratios, lt = (h1, h2) -> (h1[2] / h1[3]) > (h2[2] / h2[3]))
-for h in hand_win_ratios
-    win_count = h[2]
-    total = h[3]
-    tie_count = h[4]
-    println(h[1], " won: ", win_count, " times out of ", total, " or ", (win_count / total) * 100, "% ties ", (tie_count / total) * 100, "%")
-end
+CSV.write(filename, hand_win_ratios)
+
+# sort!(hand_win_ratios, lt = (h1, h2) -> (h1.win_count / h1.total) > (h2.win_count / h2.total))
+# for h in hand_win_ratios
+#     println(h.cardA, " ", h.cardB, " won: ", h.win_count, " times out of ", h.total, " or ", (h.win_count / h.total) * 100, "% ties ", (h.tie_count / h.total) * 100, "%")
+# end
 
 end
