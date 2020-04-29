@@ -54,6 +54,7 @@ function charge_blinds!(game::GameState)
     game.active_player_idx += 1
     game.players[game.button_pos + 2].current_bet += game.big_blind
     game.active_player_idx += 1
+    game.last_raise_pIdx = 1
     game.bet_to_call = game.big_blind
 end
 
@@ -84,7 +85,7 @@ function betting_round!(game::GameState)
         bet = ask_bet(player, player_to_call)
 
         if bet isa Fold
-            player.has_folded = true
+            game.players[pIdx].has_folded = true
         elseif bet isa Check
         elseif bet isa Call
             player.stack_size -= bet.ammount
@@ -114,7 +115,7 @@ function award_winner!(game::GameState)
             has_better_hand::Bool = is_hand_better([player.cards; game.community_cards], [winners[1].cards; game.community_cards])
             if has_better_hand
                 winners = [ player ]
-            elseif has_better_hand == Tie
+            elseif has_better_hand isa Tie
                 push!(winners, player)
             end
         end
@@ -128,7 +129,21 @@ function award_winner!(game::GameState)
     println(game.community_cards, " ", winners)
 end
 
-function play(small_blind::UInt32 = UInt32(10), big_blind::UInt32 = UInt32(20), buy_in::UInt32 = UInt32(1000))
+function reset_game!(game::GameState)
+    game.pot_size = 0
+    game.bet_to_call = 0
+    game.deck = get_deck()
+    game.community_cards = []
+    game.active_player_idx = 2
+    game.last_raise_pIdx::UInt8
+
+    for pIdx = 1:length(game.players)
+        game.players[pIdx].current_bet = 0
+        game.players[pIdx].cards = []
+    end
+end
+
+function play(total_rounds::UInt32, small_blind::UInt32 = UInt32(10), big_blind::UInt32 = UInt32(20), buy_in::UInt32 = UInt32(1000))
     players = [PokerPlayer(buy_in, 0, [], false) for i=1:6]
     button_pos = 1
     # game = GameState(
@@ -144,29 +159,34 @@ function play(small_blind::UInt32 = UInt32(10), big_blind::UInt32 = UInt32(20), 
     #     community_cards = [])
     game = GameState(UInt8(button_pos), small_blind, big_blind, players, UInt32(0), UInt8(button_pos + 1), UInt8(1), UInt32(0), get_deck(), [])
 
-    # Pre-flop
-    charge_blinds!(game)
-    deal_to_players!(game)
-    betting_round!(game)
+    for i = 1:total_rounds
+        reset_game!(game)
 
-    # Flop
-    deal_community_cards!(game, UInt8(3))
-    betting_round!(game)
+        # Pre-flop
+        charge_blinds!(game)
+        deal_to_players!(game)
+        betting_round!(game)
 
-    # River
-    deal_community_cards!(game, UInt8(1))
-    betting_round!(game)
+        # Flop
+        deal_community_cards!(game, UInt8(3))
+        betting_round!(game)
 
-    # Turn
-    deal_community_cards!(game, UInt8(1))
-    betting_round!(game)
+        # River
+        deal_community_cards!(game, UInt8(1))
+        betting_round!(game)
 
-    println(game.pot_size)
-    award_winner!(game)
-    for p in game.players println((p.has_folded, p.cards), " ", p.stack_size) end
+        # Turn
+        deal_community_cards!(game, UInt8(1))
+        betting_round!(game)
+
+        award_winner!(game)
+        for p in game.players
+            println(p.cards, ": ", p.has_folded, " - ", p.stack_size)
+        end
+    end
 end
 
 # NOT WORKING YET
-play()
+play(UInt32(1000))
 
 end
