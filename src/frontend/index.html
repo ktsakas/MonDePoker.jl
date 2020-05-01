@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+    <head>
+        <meta charset="utf-8">
+        <title>Poker Agent Playground</title>
+        <link href="https://fonts.googleapis.com/css2?family=Dosis&family=Open+Sans&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Jost:wght@800&display=swap" rel="stylesheet">
+
+        <style type="text/css">
+            body {
+                font-family: 'Jost', sans-serif;
+                font-size: 12px;
+            }
+
+            #game {
+                position: relative;
+                width: 800px;
+            }
+
+            #player1 {
+                position: relative;
+                width: 80px;
+                height: 80px;
+            }
+
+            #player1 > img {
+                color: white;
+                background-color: black;
+                border-radius: 5px;
+                box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
+            }
+
+            #player1 img {
+                // filter: grayscale(100%);
+            }
+
+            #player1 .stack_size {
+                position: absolute;
+                font-size: 14px;
+                right: -50px;
+                width: 80px;
+                border-radius: 5px;
+                text-align: right;
+                bottom: 0px;
+                background-color: #004D85;
+                color: white;
+                display: inline-block;
+                padding: 2px 10px;
+                z-index: -1;
+            }
+
+            #player1 .cards img.first_card {
+                position: absolute;
+                top: 0px;
+                right: -30px;
+                height: 50px;
+            }
+            #player1 .cards img.second_card {
+                position: absolute;
+                top: 0px;
+                right: -60px;
+                height: 50px;
+            }
+
+            #player1 .player_name {
+                overflow: hidden;
+            }
+
+            .player_name {
+                text-align: center;
+                font-size: 16px;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div id="game">
+            <div id="player1">
+                <img src="https://api.adorable.io/avatars/80/some@adorable.io.png" />
+
+                <div class="cards">
+                    <img src="./images/card_back.png" class="first_card" />
+                    <img src="./images/card_back.png" class="second_card" />
+                </div>
+
+                <div class="stack_size">980</div>
+            </div>
+
+            <img src="./images/poker_table.svg" width="100%" />
+
+            <img src="https://api.adorable.io/avatars/285/new@adorable.io.png" />
+        </div>
+
+    </body>
+</html>

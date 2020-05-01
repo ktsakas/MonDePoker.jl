@@ -217,15 +217,12 @@ function play(total_rounds::UInt32, rules::GameRules = GameRules(UInt32(10), UIn
         betting_round!(game)
 
         award_winner!(game)
-        println("community cards ", game.community_cards)
-        for (pIdx, p) in enumerate(game.players)
-            # if p.has_folded continue end
-            println(pIdx, ". ", typeof(p.strategy), " - ", (p.has_folded, p.cards), " ", p.stack_size)
-        end
-        println("=====================================================")
-
-        total_after_game = Int64(sum(p -> p.stack_size, game.players))
-        @assert (1000 * 6) == total_after_game
+        # println("community cards ", game.community_cards)
+        # for (pIdx, p) in enumerate(game.players)
+        #     # if p.has_folded continue end
+        #     println(pIdx, ". ", typeof(p.strategy), " - ", (p.has_folded, p.cards), " ", p.stack_size)
+        # end
+        # println("=====================================================")
     end
 
     return game
