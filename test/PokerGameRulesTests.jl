@@ -1,4 +1,4 @@
-include("../src/PokerGameRules.jl")
+include("../poker_engine/PokerGameRules.jl")
 using Test, .PokerGameRules, .PokerHand
 
 # validate straight flush

@@ -1,4 +1,4 @@
-include("../src/PokerGame.jl")
+include("../poker_engine/PokerGame.jl")
 using Test, .PokerGame
 
 # total money equals six times the buy in
