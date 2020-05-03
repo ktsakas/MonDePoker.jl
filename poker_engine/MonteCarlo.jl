@@ -1,12 +1,11 @@
 module MonteCarlo
-include("./PokerGameRules.jl")
-using .PokerGameRules, .PokerHand
+using ..PokerGame, .PokerGameRules, .PokerHand
 using .PokerHand: values
 using .PokerGameRules: deleteat!
-using CSV, DataFrames, Tables
+# using CSV, DataFrames, Tables
 
 export get_win_chance
-export PokerHand, PokerGameRules
+export PokerGameRules, PokerGame, PokerHand
 
 players = 6
 

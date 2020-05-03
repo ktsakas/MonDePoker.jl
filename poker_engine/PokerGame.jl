@@ -1,8 +1,9 @@
 module PokerGame
-include("./MonteCarlo.jl")
-using .MonteCarlo, .PokerGameRules, .PokerHand
+include("./PokerGameRules.jl")
+using .PokerGameRules, .PokerHand
 
-export play
+export play, PokerStrategy, PokerPlayer, PokerGameRules, PokerHand
+export BetOption, Fold, Check, Call, Raise
 
 struct Bet size::Int64 end
 
@@ -17,15 +18,13 @@ end
 const BetOption = Union{Fold, Check, Call, Raise}
 
 abstract type PokerStrategy end
-struct RandomStrategy <: PokerStrategy end
-struct HonestStrategy <: PokerStrategy end
 
 mutable struct PokerPlayer
     stack_size::UInt32
     current_bet::UInt32
-    cards::MonteCarlo.CardTuples
+    cards::PokerGameRules.CardTuples
     has_folded::Bool
-    strategy::PokerStrategy
+    ask_bet::Function
 end
 
 struct GameRules
@@ -42,28 +41,11 @@ mutable struct GameState
 
     pot_size::UInt32
     bet_to_call::UInt32
-    deck::MonteCarlo.Deck
+    deck::PokerGameRules.Deck
     community_cards::CardTuples
 
     #street::Union{PreFlop, Flop, River, Turn}
     #state::Union{Deal, PlayerAction}
-end
-
-function ask_bet(strategy::RandomStrategy, player::PokerPlayer, bet_to_call::UInt32)::BetOption
-    #println("random strategy")
-    if rand(1:10) in 1:4
-        return Fold()
-    elseif rand(1:10) == 4
-        return Raise(max(20, 2 * bet_to_call))
-    else
-        return bet_to_call == 0 ? Check() : Call(bet_to_call)
-    end
-end
-
-function ask_bet(strategy::HonestStrategy, player::PokerPlayer, bet_to_call::UInt32)::BetOption
-    win_chance = get_win_chance(player.cards)
-    #println("honest ", win_chance.win_count, " / ", win_chance.total, " = ", win_chance.win_count / win_chance.total)
-    return (win_chance.win_count / win_chance.total) > 0.15 ? Call(bet_to_call) : Fold()
 end
 
 function charge_blinds!(game::GameState)
@@ -76,12 +58,12 @@ function deal_to_players!(game::GameState)
     for (idx, player) in enumerate(game.players)
         @assert length(player.cards) == 0
 
-        player.cards = [MonteCarlo.deal!(game.deck), MonteCarlo.deal!(game.deck)]
+        player.cards = [PokerGameRules.deal!(game.deck), PokerGameRules.deal!(game.deck)]
     end
 end
 
 function deal_community_cards!(game::GameState, count::UInt8)
-    for i = 1:count push!(game.community_cards, MonteCarlo.deal!(game.deck)) end
+    for i = 1:count push!(game.community_cards, PokerGameRules.deal!(game.deck)) end
 end
 
 function next_player_idx(idx, total_players)
@@ -118,7 +100,7 @@ function betting_round!(game::GameState)
             # println("gg ", game.bet_to_call, " ≥ ", player.current_bet)
             @assert game.bet_to_call ≥ player.current_bet
             player_to_call = game.bet_to_call - player.current_bet
-            bet = ask_bet(player.strategy, player, player_to_call)
+            bet = player.ask_bet(player, player_to_call)
 
             if bet isa Fold
                 game.players[pIdx].has_folded = true
@@ -167,7 +149,7 @@ end
 function reset_game!(game::GameState)
     game.pot_size = 0
     game.bet_to_call = 0
-    game.deck = MonteCarlo.get_deck()
+    game.deck = PokerGameRules.get_deck()
     game.community_cards = []
     game.button_pos = 1
 
@@ -178,11 +160,8 @@ function reset_game!(game::GameState)
     end
 end
 
-function play(total_rounds::UInt32, rules::GameRules = GameRules(UInt32(10), UInt32(20), UInt32(1000), UInt8(6)))::GameState
-    players = [
-        [PokerPlayer(rules.buy_in, 0, [], false, RandomStrategy()) for i=1:3];
-        [PokerPlayer(rules.buy_in, 0, [], false, HonestStrategy()) for i=1:3]
-    ]
+function play(total_rounds::UInt32, bet_asks::Array{F, 1}, rules::GameRules = GameRules(UInt32(10), UInt32(20), UInt32(1000), UInt8(6)))::GameState where F
+    players = [PokerPlayer(rules.buy_in, 0, [], false, bet_ask) for bet_ask in bet_asks]
     button_pos = 1
     # game = GameState(
     #     button_pos = UInt8(1),
@@ -194,7 +173,7 @@ function play(total_rounds::UInt32, rules::GameRules = GameRules(UInt32(10), UIn
     #     bet_to_call = UInt32(0),
     #     deck = get_deck(),
     #     community_cards = [])
-    game = GameState(rules, UInt8(button_pos), players, UInt32(0), UInt32(0), MonteCarlo.get_deck(), [])
+    game = GameState(rules, UInt8(button_pos), players, UInt32(0), UInt32(0), PokerGameRules.get_deck(), [])
 
     for i = 1:total_rounds
         reset_game!(game)
@@ -217,18 +196,15 @@ function play(total_rounds::UInt32, rules::GameRules = GameRules(UInt32(10), UIn
         betting_round!(game)
 
         award_winner!(game)
-        # println("community cards ", game.community_cards)
-        # for (pIdx, p) in enumerate(game.players)
-        #     # if p.has_folded continue end
-        #     println(pIdx, ". ", typeof(p.strategy), " - ", (p.has_folded, p.cards), " ", p.stack_size)
-        # end
-        # println("=====================================================")
+        println("community cards ", game.community_cards)
+        for (pIdx, p) in enumerate(game.players)
+            # if p.has_folded continue end
+            println(pIdx, ". ", typeof(p.ask_bet), " - ", (p.has_folded, p.cards), " ", p.stack_size)
+        end
+        println("=====================================================")
     end
 
     return game
 end
-
-# NOT WORKING YET
-play(UInt32(100))
 
 end
