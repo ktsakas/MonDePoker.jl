@@ -1,5 +1,5 @@
 include("../poker_engine/PokerGameRules.jl")
-using Test, .PokerGameRules, .PokerHand
+using Test, .PokerGameRules, .Cards
 
 # validate straight flush
 @test get_best_hand(to_hand_tuples("4♥ 8♥ Q♣ 6♥ 5♥ T♠ 7♥")).combo == straight_flush
@@ -78,17 +78,20 @@ end
     @test is_hand_better(flush_hand, "4♥ T♥ 5♦ 5♥ T♠ 9♥ A♥" |> to_hand_tuples) == false
 end
 
-## straight
+@testset "compare straight" begin
     ### better than triplet
     @test is_hand_better("5♦ 2♣ Q♦ T♥ 3♦ A♦ 4♠"  |> to_hand_tuples, "7♦ T♣ 5♦ K♥ 3♦ T♦ T♠" |> to_hand_tuples) == true
+end
 
-## triplet
+@testset "compare triplet" begin
     ### better triplet
     @test is_hand_better("7♦ Q♣ Q♦ Q♥ 3♦ 6♦ J♠"  |> to_hand_tuples, "7♦ T♣ 5♦ K♥ 3♦ T♦ T♠" |> to_hand_tuples) == true
+end
 
-## pair
+@testset "compare pair" begin
     ### better pair
     @test is_hand_better("7♦ Q♣ 5♦ 6♥ 3♦ 6♦ J♠"  |> to_hand_tuples, "7♦ Q♣ 5♦ 5♥ 3♦ 6♦ J♠" |> to_hand_tuples) == true
+end
 
 @testset "compare high cards" begin
     ### better high card

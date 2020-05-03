@@ -1,9 +1,11 @@
-module PokerHand
+module Cards
 
-export to_hand_tuples, Rank, Suit, Card, PokerHandStr, CardTuples, values
-export ♣, ♦, ♥, ♠, suits
+export to_hand_tuples, Rank, Suit, Card, CardsStr, CardTuples, values
+export ♣, ♦, ♥, ♠, suits, *
 
-const PokerHandStr = String
+import Base: *
+
+const CardsStr = String
 const Rank = UInt8
 const rank_chars = ['X', '2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
 struct Suit
@@ -36,8 +38,8 @@ function Card(rank_char::Char, suit_char::Char)
     Card(rank::Rank, Suit(suit_i))
 end
 
-function to_hand_tuples(pokerHand::PokerHandStr)::CardTuples
-    cards_tuples = [Card(card[1]::Char, card[2]::Char) for card in Base.split(pokerHand, " ")]
+function to_hand_tuples(Cards::CardsStr)::CardTuples
+    cards_tuples = [Card(card[1]::Char, card[2]::Char) for card in Base.split(Cards, " ")]
     cards_tuples
 end
 

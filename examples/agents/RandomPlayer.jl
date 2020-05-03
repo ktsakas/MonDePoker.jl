@@ -1,7 +1,7 @@
 module RandomPlayer
 using ..PokerGame
 
-export ask_bet
+export RandomAgent, ask_bet
 
 function ask_bet(player::PokerPlayer, bet_to_call::UInt32)::BetOption
     #println("random strategy")
@@ -13,4 +13,6 @@ function ask_bet(player::PokerPlayer, bet_to_call::UInt32)::BetOption
         return bet_to_call == 0 ? Check() : Call(bet_to_call)
     end
 end
+
+const RandomAgent = PokerAgent(ask_bet)
 end

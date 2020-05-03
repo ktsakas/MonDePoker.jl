@@ -1,9 +1,9 @@
 module PokerGame
 include("./PokerGameRules.jl")
-using .PokerGameRules, .PokerHand
+using .PokerGameRules, .Cards
 
-export play, PokerStrategy, PokerPlayer, PokerGameRules, PokerHand
-export BetOption, Fold, Check, Call, Raise
+export play, PokerStrategy, PokerPlayer, PokerGameRules, Cards
+export BetOption, Fold, Check, Call, Raise, PokerAgent
 
 struct Bet size::Int64 end
 
@@ -17,14 +17,16 @@ struct Raise
 end
 const BetOption = Union{Fold, Check, Call, Raise}
 
-abstract type PokerStrategy end
+struct PokerAgent
+    ask_bet::Function
+end
 
 mutable struct PokerPlayer
     stack_size::UInt32
     current_bet::UInt32
     cards::PokerGameRules.CardTuples
     has_folded::Bool
-    ask_bet::Function
+    agent::PokerAgent
 end
 
 struct GameRules
@@ -43,9 +45,6 @@ mutable struct GameState
     bet_to_call::UInt32
     deck::PokerGameRules.Deck
     community_cards::CardTuples
-
-    #street::Union{PreFlop, Flop, River, Turn}
-    #state::Union{Deal, PlayerAction}
 end
 
 function charge_blinds!(game::GameState)
@@ -100,7 +99,7 @@ function betting_round!(game::GameState)
             # println("gg ", game.bet_to_call, " ≥ ", player.current_bet)
             @assert game.bet_to_call ≥ player.current_bet
             player_to_call = game.bet_to_call - player.current_bet
-            bet = player.ask_bet(player, player_to_call)
+            bet = player.agent.ask_bet(player, player_to_call)
 
             if bet isa Fold
                 game.players[pIdx].has_folded = true
@@ -160,19 +159,9 @@ function reset_game!(game::GameState)
     end
 end
 
-function play(total_rounds::UInt32, bet_asks::Array{F, 1}, rules::GameRules = GameRules(UInt32(10), UInt32(20), UInt32(1000), UInt8(6)))::GameState where F
-    players = [PokerPlayer(rules.buy_in, 0, [], false, bet_ask) for bet_ask in bet_asks]
+function play(total_rounds::UInt32, agents::Array{PokerAgent}, rules::GameRules = GameRules(UInt32(10), UInt32(20), UInt32(1000), UInt8(6)))::GameState
+    players = [PokerPlayer(rules.buy_in, 0, [], false, agent) for agent in agents]
     button_pos = 1
-    # game = GameState(
-    #     button_pos = UInt8(1),
-    #     small_blind = small_blind,
-    #     big_blind = big_blind,
-    #     players = players,
-    #     pot_size = UInt32(0),
-    #     active_player_idx = UInt8(2),
-    #     bet_to_call = UInt32(0),
-    #     deck = get_deck(),
-    #     community_cards = [])
     game = GameState(rules, UInt8(button_pos), players, UInt32(0), UInt32(0), PokerGameRules.get_deck(), [])
 
     for i = 1:total_rounds
@@ -199,7 +188,7 @@ function play(total_rounds::UInt32, bet_asks::Array{F, 1}, rules::GameRules = Ga
         println("community cards ", game.community_cards)
         for (pIdx, p) in enumerate(game.players)
             # if p.has_folded continue end
-            println(pIdx, ". ", typeof(p.ask_bet), " - ", (p.has_folded, p.cards), " ", p.stack_size)
+            println(pIdx, ". ", typeof(p.agent.ask_bet), " - ", (p.has_folded, p.cards), " ", p.stack_size)
         end
         println("=====================================================")
     end

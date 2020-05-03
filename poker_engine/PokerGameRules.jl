@@ -1,8 +1,8 @@
-include("./PokerHand.jl")
+include("./Cards.jl")
 
 module PokerGameRules
-using ..PokerHand
-using ..PokerHand: values
+using ..Cards
+using ..Cards: values
 
 export get_best_hand, is_hand_better, get_deck, Tie, deal!, deleteat!, idx_from_rank_suit, Deck
 export high_card, pair, two_pair, three_of_a_kind, straight, flush, full_house, quads, straight_flush
